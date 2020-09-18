@@ -1,0 +1,159 @@
+<html>
+    <head>
+        <script src="https://moment.github.io/luxon/global/luxon.min.js"></script>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+
+        <meta charset="utf-8" />
+        <title>Forcepoint Display Activity</title>
+        <script type="text/javascript">
+        // download the CSV file
+        // use d3 to display an activity chart
+        // X axis - time (make a selector for beginning / end)
+        // Y axis - individual computer IP address on each row        
+            var DateTime = luxon.DateTime;
+
+            function drawD3plot(timeAndIpIn){
+             
+                var margin = {top: 10, right: 30, bottom: 30, left: 60};
+                var width = 1800;
+                var height = 4000;
+
+                // add the tooltip area to the webpage
+                var tooltip = d3.select("body").append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0);
+
+                var svg = d3.select("body").append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                var x = d3.scaleTime()
+                    .domain(d3.extent(timeAndIpIn, d => d.time))
+                    .range([ 0, width - margin.right ])
+
+                svg.append("g")
+                    .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+                    .call(d3.axisBottom(x))
+               
+                var y = d3.scaleBand()
+                    .domain(timeAndIpIn.map(d => d.ip))
+                    .range([margin.top, height - margin.bottom])
+                    
+                // Add Y axis
+                svg.append("g")
+                    .attr("transform", "translate(0," + (y.bandwidth() / 2) + ")")
+                    .call(d3.axisLeft(y))
+
+                // add data
+                svg.append("g")
+                    .selectAll("dot")
+                    .data(timeAndIpIn)
+                    .enter()
+                    .append("circle")
+                        .attr("cx", d => x(d.time))
+                        .attr("cy", d => y(d.ip))
+                        .attr("r", 1.5)
+                        .style("fill", "#69b3a2")
+                        .on("mouseover", function(event, d) {
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", .9);
+                            tooltip.html("IP:" + d.ip + "<br/>" + "URL: " + d.url + "<br/>" + "Time:" + d.time.toISO())
+                                .style("left", (event.pageX + 5) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function(d) {
+                            tooltip.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+                        });
+            }
+         
+            function readFile() {
+                var fileInput = document.getElementById("csvInput");
+                var reader = new FileReader();
+                reader.onload = function() {
+                    // parse the CSV contents
+                    var csvJson = csvJSON(reader.result);
+                    
+                    // draw the d3 diagram
+                    var timeAndIp = convertTextToTime(csvJson, 'b', 'p', 'aj')
+                    drawD3plot(timeAndIp);
+                };
+                // start reading the file. When it is done, calls the onload event defined above.
+                reader.readAsBinaryString(fileInput.files[0]);
+            };
+
+            // convert the csv to json
+            function csvJSON(csv){
+
+                // handle Windows CSV with a \n\r for a newline character, remove the \r
+                var csvNoCr = csv.replace(/\r/g,"");
+                var lines=csvNoCr.split("\n");
+                var result = [];
+                var headers=lines[0].split(",");
+
+                for(var i=1;i<lines.length;i++){
+
+                    var obj = {};
+                    var currentline=lines[i].split(",");
+
+                    for(var j=0;j<headers.length;j++){
+                        obj[headers[j]] = currentline[j];
+                    }
+
+                    result.push(obj);
+                }
+                return result;
+            }
+
+
+            function convertTextToTime(jsonIn, timeColumn, ipColumn, urlColumn) {
+
+                // go through each element and create a 'timeObject'
+                var jsonOut = jsonIn.map(jsonEntry =>  (
+                    {
+                        time: DateTime.fromSQL(jsonEntry[timeColumn]), 
+                        ip: jsonEntry[ipColumn],
+                        url: jsonEntry[urlColumn],
+                    }
+                    ))
+                return jsonOut;
+            }
+
+        </script>
+        <style>
+            body {
+                margin: 0px;
+            }
+            .domain {
+                display: none;
+            }
+            .tick line {
+                stroke: #C0C0BB;
+            }
+            .tick text {
+                fill: #8E8883;
+                font-size: 6pt;
+                font-family: sans-serif;
+            }
+            .axis-label {
+                fill: #635F5D;
+                font-size: 6pt;
+                font-family: sans-serif;
+            }
+            .tooltip {
+                position: absolute;
+                width: 200px;
+                height: 28px;
+                pointer-events: none;
+            }
+        </style>
+    </head>
+    <body >
+        <p>Load a forcepoint log file</p>
+        <input id="csvInput" type="file" onchange="readFile()">  
+    </body>
+</html>
