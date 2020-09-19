@@ -1,16 +1,15 @@
-# Forcepoint botSpot
+# botSpot
 
-Tool to display activity in a chart of forcepoint policy violations
+Tool to display activity in a chart of time / ip / url displays 
 
-Extract a CSV file from a forcepoint device
-Make the first row have the column names ('a', 'b', 'c',...)
+Collect a CSV file with the following columns: 'time', 'ip', 'url'
+Ensure there are column names in the first row ('a', 'b', 'c',...)
 
 The program currently looks for the following column names
 
-'b' -> time
-'p' -> source_ip
-'aj' -> url 
+'time' -> time
+'ip' -> source_ip
+'url' -> url 
 
-Load the CSV file and look for long streams of violations, that's probably a bot.
-
+Load the CSV file and look for long streams of connections to websites, that's probably a bot.
 

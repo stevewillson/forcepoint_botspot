@@ -4,19 +4,20 @@
         <script src="https://d3js.org/d3.v6.min.js"></script>
 
         <meta charset="utf-8" />
-        <title>Forcepoint Display Activity</title>
+        <title>Time / IP / URL Activity Display</title>
         <script type="text/javascript">
+        
         // download the CSV file
         // use d3 to display an activity chart
         // X axis - time (make a selector for beginning / end)
         // Y axis - individual computer IP address on each row        
+        
             var DateTime = luxon.DateTime;
 
-            function drawD3plot(timeAndIpIn){
-             
+            function drawD3plot(jsonObj){
                 var margin = {top: 10, right: 30, bottom: 30, left: 60};
-                var width = 1800;
-                var height = 4000;
+                var width = document.getElementById("widthVal").value || 1800;
+                var height = document.getElementById("heightVal").value || 900;
 
                 // add the tooltip area to the webpage
                 var tooltip = d3.select("body").append("div")
@@ -30,7 +31,7 @@
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
                 var x = d3.scaleTime()
-                    .domain(d3.extent(timeAndIpIn, d => d.time))
+                    .domain(d3.extent(jsonObj, d => d.time))
                     .range([ 0, width - margin.right ])
 
                 svg.append("g")
@@ -38,7 +39,7 @@
                     .call(d3.axisBottom(x))
                
                 var y = d3.scaleBand()
-                    .domain(timeAndIpIn.map(d => d.ip))
+                    .domain(jsonObj.map(d => d.ip))
                     .range([margin.top, height - margin.bottom])
                     
                 // Add Y axis
@@ -49,7 +50,7 @@
                 // add data
                 svg.append("g")
                     .selectAll("dot")
-                    .data(timeAndIpIn)
+                    .data(jsonObj)
                     .enter()
                     .append("circle")
                         .attr("cx", d => x(d.time))
@@ -79,8 +80,8 @@
                     var csvJson = csvJSON(reader.result);
                     
                     // draw the d3 diagram
-                    var timeAndIp = convertTextToTime(csvJson, 'b', 'p', 'aj')
-                    drawD3plot(timeAndIp);
+                    var jsonObj = parseJsonObject(csvJson, 'time', 'ip', 'url')
+                    drawD3plot(jsonObj);
                 };
                 // start reading the file. When it is done, calls the onload event defined above.
                 reader.readAsBinaryString(fileInput.files[0]);
@@ -88,7 +89,6 @@
 
             // convert the csv to json
             function csvJSON(csv){
-
                 // handle Windows CSV with a \n\r for a newline character, remove the \r
                 var csvNoCr = csv.replace(/\r/g,"");
                 var lines=csvNoCr.split("\n");
@@ -109,10 +109,9 @@
                 return result;
             }
 
+            function parseJsonObject(jsonIn, timeColumn, ipColumn, urlColumn) {
 
-            function convertTextToTime(jsonIn, timeColumn, ipColumn, urlColumn) {
-
-                // go through each element and create a 'timeObject'
+                // go through each element to create the json object
                 var jsonOut = jsonIn.map(jsonEntry =>  (
                     {
                         time: DateTime.fromSQL(jsonEntry[timeColumn]), 
@@ -153,7 +152,9 @@
         </style>
     </head>
     <body >
-        <p>Load a forcepoint log file</p>
+        <p>Select a CSV file with 'time', 'ip', and 'url' columns</p>
         <input id="csvInput" type="file" onchange="readFile()">  
+        <label for="widthVal">Chart Width</label></label><input id="widthVal" type="text">
+        <label for="heightVal">Chart Height</label></label><input id="heightVal" type="text">
     </body>
 </html>
